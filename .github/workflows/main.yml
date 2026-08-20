@@ -23,7 +23,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Setup Environment and Keystore
+      - name: Setup Keystore and Environment Files
         run: |
           if [ -f gradlew ]; then
             chmod +x gradlew
@@ -31,18 +31,18 @@ jobs:
             gradle wrapper
             chmod +x gradlew
           fi
-          # Создаем ключ подписи и .env файл, если их нет
+          # Debug keystore va .env faylini yaratish
           if [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
           if [ ! -f .env ]; then
-            touch .env
+            echo "GEMINI_API_KEY=" > .env
           fi
 
       - name: Build APK with Gradle
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug -Djava.awt.headless=true --stacktrace --no-daemon
 
-      - name: Upload APK to Artifacts
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: BilimTest-Debug-APK
