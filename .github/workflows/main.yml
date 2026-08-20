@@ -1,4 +1,4 @@
-name: Build and Package APK
+name: Build Android APK
 
 on:
   push:
@@ -22,41 +22,28 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: "8.12"
-
-      - name: Locate Project and Build APK
+      - name: Build APK
         run: |
-          # Ищем папку с settings.gradle.kts (если проект во вложенной папке)
-          TARGET_DIR=$(find . -name "settings.gradle.kts" -not -path "*/.*" -exec dirname {} \; | head -n 1)
-          if [ -n "$TARGET_DIR" ]; then
-            cd "$TARGET_DIR"
-          fi
-
-          # Создаем ключ подписи
+          # 1. Создаем debug.keystore
           if [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-          # Создаем .env
+          # 2. Создаем .env
           if [ ! -f .env ]; then
-            echo "GEMINI_API_KEY=MY_KEY" > .env
+            echo "GEMINI_API_KEY=" > .env
           fi
 
-          # Создаем gradlew если нет
-          if [ ! -f gradlew ]; then
-            gradle wrapper
-          fi
+          # 3. Устанавливаем wrapper
+          gradle wrapper --gradle-version 8.12
           chmod +x gradlew
 
-          # Собираем APK
-          ./gradlew assembleDebug -Djava.awt.headless=true --no-daemon --stacktrace
+          # 4. Собираем APK без кэш-ошибок
+          ./gradlew assembleDebug --no-daemon --no-build-cache -Djava.awt.headless=true --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: BilimTest-Debug-APK
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
