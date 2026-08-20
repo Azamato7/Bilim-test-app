@@ -1,4 +1,4 @@
-name: Build and Release Android APK
+name: Build Android APK
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Setup Gradle Environment
+      - name: Setup Environment and Keystore
         run: |
           if [ -f gradlew ]; then
             chmod +x gradlew
@@ -31,13 +31,20 @@ jobs:
             gradle wrapper
             chmod +x gradlew
           fi
+          # Создаем ключ подписи и .env файл, если их нет
+          if [ ! -f debug.keystore ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          if [ ! -f .env ]; then
+            touch .env
+          fi
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build APK with Gradle
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: BilimTest-MilliySertifikat-APK
+          name: BilimTest-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
